@@ -1,0 +1,6 @@
+{
+  "name": "CyberSec: Zero-Day Academy",
+  "description": "50-level cybersecurity learning, investigation, and incident-response campaign with real-time log correlation, network simulators, and forensic analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

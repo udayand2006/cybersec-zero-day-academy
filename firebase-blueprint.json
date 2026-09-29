@@ -1,0 +1,284 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user profile and progress state in the cybersecurity academy.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "User ID matching auth UID",
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "maxLength": 128
+        },
+        "username": {
+          "type": "string",
+          "description": "Display username",
+          "minLength": 2,
+          "maxLength": 30,
+          "pattern": "^[a-zA-Z0-9_.-]+$"
+        },
+        "email": {
+          "type": "string",
+          "description": "User account email",
+          "maxLength": 150
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Legal full name",
+          "maxLength": 100
+        },
+        "certificateName": {
+          "type": "string",
+          "description": "Official name printed on certificate",
+          "maxLength": 100
+        },
+        "batch": {
+          "type": "string",
+          "description": "Cohort batch",
+          "maxLength": 30
+        },
+        "country": {
+          "type": "string",
+          "description": "Student country",
+          "maxLength": 50
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "Student date of birth",
+          "maxLength": 20
+        },
+        "currentLevel": {
+          "type": "number",
+          "description": "Current active level"
+        },
+        "completedLevels": {
+          "type": "array",
+          "description": "List of completed level numbers"
+        },
+        "xp": {
+          "type": "number",
+          "description": "Total accrued experience points"
+        },
+        "level": {
+          "type": "number",
+          "description": "Investigator rank tier level"
+        },
+        "casesSolved": {
+          "type": "number",
+          "description": "Total cases investigated"
+        },
+        "bossChallengesCompleted": {
+          "type": "number",
+          "description": "Number of major boss incidents resolved"
+        },
+        "quizAccuracy": {
+          "type": "number",
+          "description": "Average quiz accuracy percentage"
+        },
+        "investigationScore": {
+          "type": "number",
+          "description": "Total points accumulated in investigations"
+        },
+        "hintsUsed": {
+          "type": "number",
+          "description": "Total hints used"
+        },
+        "unlockedTools": {
+          "type": "array",
+          "description": "Unlocked forensics toolbox utilities"
+        },
+        "badges": {
+          "type": "array",
+          "description": "Unlocked badges"
+        },
+        "certificateEarned": {
+          "type": "boolean",
+          "description": "Whether the graduate certificate has been issued"
+        },
+        "certificateId": {
+          "type": "string",
+          "description": "Assigned verifiable certificate ID",
+          "maxLength": 64
+        },
+        "certificateDate": {
+          "type": "string",
+          "description": "Date of certificate issuance",
+          "maxLength": 30
+        },
+        "streakDays": {
+          "type": "number",
+          "description": "Continuous daily training streak"
+        },
+        "role": {
+          "type": "string",
+          "description": "User access role",
+          "enum": ["USER", "ADMIN"]
+        },
+        "publicProfileEnabled": {
+          "type": "boolean",
+          "description": "Whether public leaderboard and social stats are enabled"
+        }
+      },
+      "required": ["id", "username", "email", "xp", "currentLevel", "completedLevels"]
+    },
+    "PublicProfile": {
+      "title": "PublicProfile",
+      "description": "Public student profile safe for public leaderboard and peer comparison.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "username": {
+          "type": "string",
+          "description": "Public handle",
+          "minLength": 2,
+          "maxLength": 30
+        },
+        "batch": {
+          "type": "string",
+          "description": "Batch cohort",
+          "maxLength": 30
+        },
+        "level": {
+          "type": "number",
+          "description": "Current level"
+        },
+        "xp": {
+          "type": "number",
+          "description": "Experience points"
+        },
+        "casesSolved": {
+          "type": "number",
+          "description": "Cases resolved"
+        },
+        "bossChallengesCompleted": {
+          "type": "number",
+          "description": "Boss incident count"
+        },
+        "quizAccuracy": {
+          "type": "number",
+          "description": "Quiz accuracy rate"
+        },
+        "investigationScore": {
+          "type": "number",
+          "description": "Score from investigations"
+        },
+        "badgesCount": {
+          "type": "number",
+          "description": "Total badges earned"
+        },
+        "certificateEarned": {
+          "type": "boolean",
+          "description": "Certificate completed flag"
+        },
+        "certificateId": {
+          "type": "string",
+          "description": "Certificate ID if earned",
+          "maxLength": 64
+        },
+        "streakDays": {
+          "type": "number",
+          "description": "Streak in days"
+        }
+      },
+      "required": ["userId", "username", "batch", "level", "xp"]
+    },
+    "CertificateRecord": {
+      "title": "CertificateRecord",
+      "description": "Verifiable completion certificate registry record.",
+      "type": "object",
+      "properties": {
+        "certificateId": {
+          "type": "string",
+          "description": "Unique verification code",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Recipient UID",
+          "maxLength": 128
+        },
+        "studentName": {
+          "type": "string",
+          "description": "Official graduate name",
+          "maxLength": 100
+        },
+        "batch": {
+          "type": "string",
+          "description": "Cohort batch",
+          "maxLength": 30
+        },
+        "completionDate": {
+          "type": "string",
+          "description": "Date of graduation",
+          "maxLength": 30
+        },
+        "courseTitle": {
+          "type": "string",
+          "description": "Course title",
+          "maxLength": 120
+        },
+        "totalLevels": {
+          "type": "number",
+          "description": "Total levels completed"
+        },
+        "finalScore": {
+          "type": "number",
+          "description": "Final score or accuracy percentage"
+        },
+        "status": {
+          "type": "string",
+          "description": "Certificate status",
+          "enum": ["Valid", "Revoked"]
+        },
+        "skillsCovered": {
+          "type": "array",
+          "description": "List of mastered cybersecurity domains"
+        }
+      },
+      "required": ["certificateId", "userId", "studentName", "completionDate", "status"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Admin authorization registry document.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Admin email",
+          "maxLength": 150
+        },
+        "role": {
+          "type": "string",
+          "description": "Admin role identifier",
+          "enum": ["ADMIN"]
+        }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user profiles, learning progress, and personal details."
+    },
+    "/public_profiles/{userId}": {
+      "schema": "PublicProfile",
+      "description": "Publicly viewable student leaderboard profile cards without PII."
+    },
+    "/certificates/{certificateId}": {
+      "schema": "CertificateRecord",
+      "description": "Publicly verifiable certificate records."
+    },
+    "/admins/{adminId}": {
+      "schema": "AdminRecord",
+      "description": "Administrator registry."
+    }
+  }
+}

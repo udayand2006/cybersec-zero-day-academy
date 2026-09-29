@@ -1,0 +1,188 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Core Hardened Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == 'udayandrekha678@gmail.com' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // --- Validation Helper: UserProfile ---
+    function isValidUserProfile(data, uid) {
+      return data.id == uid &&
+        data.username is string && data.username.size() >= 2 && data.username.size() <= 30 &&
+        data.email is string && data.email.size() <= 150 &&
+        data.xp is number && data.xp >= 0 &&
+        data.currentLevel is number && data.currentLevel >= 1 && data.currentLevel <= 50 &&
+        data.completedLevels is list && data.completedLevels.size() <= 60 &&
+        (!('role' in data) || data.role == 'USER' || isAdmin()) &&
+        (!('fullName' in data) || (data.fullName is string && data.fullName.size() <= 100)) &&
+        (!('certificateName' in data) || (data.certificateName is string && data.certificateName.size() <= 100)) &&
+        (!('batch' in data) || (data.batch is string && data.batch.size() <= 30)) &&
+        (!('country' in data) || (data.country is string && data.country.size() <= 50)) &&
+        (!('dateOfBirth' in data) || (data.dateOfBirth is string && data.dateOfBirth.size() <= 20)) &&
+        (!('unlockedTools' in data) || (data.unlockedTools is list && data.unlockedTools.size() <= 30)) &&
+        (!('badges' in data) || (data.badges is list && data.badges.size() <= 50)) &&
+        (!('certificateEarned' in data) || data.certificateEarned is bool) &&
+        (!('streakDays' in data) || (data.streakDays is number && data.streakDays >= 0)) &&
+        (!('publicProfileEnabled' in data) || data.publicProfileEnabled is bool);
+    }
+
+    // --- Validation Helper: PublicProfile ---
+    function isValidPublicProfile(data, uid) {
+      return data.userId == uid &&
+        data.username is string && data.username.size() >= 2 && data.username.size() <= 30 &&
+        data.batch is string && data.batch.size() <= 30 &&
+        data.level is number && data.level >= 1 && data.level <= 50 &&
+        data.xp is number && data.xp >= 0 &&
+        (!('casesSolved' in data) || data.casesSolved is number) &&
+        (!('bossChallengesCompleted' in data) || data.bossChallengesCompleted is number) &&
+        (!('quizAccuracy' in data) || data.quizAccuracy is number) &&
+        (!('investigationScore' in data) || data.investigationScore is number) &&
+        (!('badgesCount' in data) || data.badgesCount is number) &&
+        (!('certificateEarned' in data) || data.certificateEarned is bool) &&
+        (!('certificateId' in data) || (data.certificateId is string && data.certificateId.size() <= 64)) &&
+        (!('streakDays' in data) || data.streakDays is number);
+    }
+
+    // --- Validation Helper: CertificateRecord ---
+    function isValidCertificate(data) {
+      return data.certificateId is string && data.certificateId.size() <= 64 &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.studentName is string && data.studentName.size() <= 100 &&
+        data.completionDate is string && data.completionDate.size() <= 30 &&
+        data.status in ['Valid', 'Revoked'] &&
+        (!('courseTitle' in data) || (data.courseTitle is string && data.courseTitle.size() <= 120)) &&
+        (!('totalLevels' in data) || data.totalLevels is number) &&
+        (!('finalScore' in data) || data.finalScore is number) &&
+        (!('skillsCovered' in data) || (data.skillsCovered is list && data.skillsCovered.size() <= 50));
+    }
+
+    // ==========================================
+    // 1. Private User Profiles (/users/{userId})
+    // ==========================================
+    match /users/{userId} {
+      // Individual document get: Only owner or admin
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+
+      // Query list: Enforce owner constraint on resource.data to prevent scanning
+      allow list: if isSignedIn() && (
+        isAdmin() ||
+        (resource.data.id == request.auth.uid)
+      );
+
+      // Create: Owner can create initial profile; must validate schema & prevent self-assigned admin
+      allow create: if isValidId(userId) && isOwner(userId) &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().keys().hasAll(['id', 'username', 'email', 'xp', 'currentLevel', 'completedLevels']) &&
+        incoming().keys().hasOnly([
+          'id', 'username', 'email', 'fullName', 'certificateName', 'batch',
+          'country', 'dateOfBirth', 'currentLevel', 'completedLevels', 'xp',
+          'level', 'casesSolved', 'bossChallengesCompleted', 'quizAccuracy',
+          'investigationScore', 'hintsUsed', 'unlockedTools', 'badges',
+          'certificateEarned', 'certificateId', 'certificateDate', 'streakDays',
+          'role', 'publicProfileEnabled', 'createdAt', 'updatedAt'
+        ]);
+
+      // Update: Owner can update progress; admin can update anything
+      allow update: if isValidId(userId) && (
+        isAdmin() ||
+        (
+          isOwner(userId) &&
+          isValidUserProfile(incoming(), userId) &&
+          incoming().id == existing().id &&
+          incoming().email == existing().email &&
+          (!('role' in incoming()) || incoming().role == existing().role)
+        )
+      );
+
+      allow delete: if isValidId(userId) && (isAdmin() || isOwner(userId));
+    }
+
+    // ==========================================
+    // 2. Public Leaderboard Profiles (/public_profiles/{userId})
+    // ==========================================
+    match /public_profiles/{userId} {
+      // Any signed in user can read public profile cards (No PII)
+      allow get: if isValidId(userId) && isSignedIn();
+      allow list: if isSignedIn();
+
+      allow create: if isValidId(userId) && isOwner(userId) &&
+        isValidPublicProfile(incoming(), userId) &&
+        incoming().keys().hasAll(['userId', 'username', 'batch', 'level', 'xp']);
+
+      allow update: if isValidId(userId) && (
+        isAdmin() ||
+        (
+          isOwner(userId) &&
+          isValidPublicProfile(incoming(), userId) &&
+          incoming().userId == existing().userId
+        )
+      );
+
+      allow delete: if isValidId(userId) && (isAdmin() || isOwner(userId));
+    }
+
+    // ==========================================
+    // 3. Verifiable Certificates (/certificates/{certificateId})
+    // ==========================================
+    match /certificates/{certificateId} {
+      // Anyone can verify a certificate by ID (Public verification lookup)
+      allow get: if isValidId(certificateId);
+      allow list: if isSignedIn();
+
+      // Creation: Owner claiming certificate for their own userId or admin
+      allow create: if isValidId(certificateId) &&
+        isValidCertificate(incoming()) &&
+        (isAdmin() || (isSignedIn() && incoming().userId == request.auth.uid));
+
+      // Modification: Only admins can revoke or update certificates
+      allow update: if isValidId(certificateId) && isAdmin();
+      allow delete: if isValidId(certificateId) && isAdmin();
+    }
+
+    // ==========================================
+    // 4. Admin Management (/admins/{adminId})
+    // ==========================================
+    match /admins/{adminId} {
+      allow read: if isValidId(adminId) && isSignedIn();
+      allow write: if isValidId(adminId) && isAdmin();
+    }
+
+    // ==========================================
+    // 5. Test connection ping document
+    // ==========================================
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
